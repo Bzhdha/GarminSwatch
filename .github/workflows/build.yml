@@ -58,7 +58,17 @@ jobs:
 
       - name: Add SDK to PATH
         run: |
-          SDK_BIN=$(connect-iq-sdk-manager sdk current-path --bin)
+          # After a cache restore the manager has no "current" SDK set — fall back to find
+          SDK_BIN=$(connect-iq-sdk-manager sdk current-path --bin 2>/dev/null || true)
+          if [ -z "$SDK_BIN" ]; then
+            SDK_BIN=$(find "$HOME/.Garmin/ConnectIQ/Sdks" -maxdepth 3 -name "monkeyc" -type f 2>/dev/null \
+              | sort -V | tail -1 | xargs -r dirname)
+          fi
+          if [ -z "$SDK_BIN" ]; then
+            echo "::error::SDK introuvable — le cache est vide et le téléchargement a échoué"
+            exit 1
+          fi
+          echo "SDK bin: $SDK_BIN"
           echo "$SDK_BIN" >> $GITHUB_PATH
 
       # ── Devices ───────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ class GarminSwatchView extends WatchUi.WatchFace {
     private const COLOR_WHITE   = 0xFFFFFF;
     private const COLOR_ACCENT  = 0xFF2020;  // rouge Swatch
     private const COLOR_DIM     = 0x666666;
+    private const COLOR_BODY    = 0x00AAFF;  // bleu body battery
 
     function initialize() {
         WatchFace.initialize();
@@ -42,12 +43,13 @@ class GarminSwatchView extends WatchUi.WatchFace {
         var stats     = System.getSystemStats();
 
         _drawBackground(dc);
-        _drawAccentBar(dc);
+        _drawHeartRate(dc);
+        _drawBodyBattery(dc);
         _drawTime(dc, clockTime);
+        _drawAccentBar(dc);
         _drawDate(dc, now);
         _drawBattery(dc, stats.battery);
         _drawSteps(dc);
-        _drawHeartRate(dc);
     }
 
     function onHide() as Void {
@@ -59,11 +61,36 @@ class GarminSwatchView extends WatchUi.WatchFace {
         dc.fillRectangle(0, 0, _screenWidth, _screenHeight);
     }
 
-    // ── Barre d'accent rouge horizontale (style Swatch) ──────────────────────
-    private function _drawAccentBar(dc as Dc) as Void {
-        var barY = _centerY + 28;
+    // ── Fréquence cardiaque (haut gauche) ────────────────────────────────────
+    private function _drawHeartRate(dc as Dc) as Void {
+        var actInfo = Activity.getActivityInfo();
+        if (actInfo == null || actInfo.currentHeartRate == null) {
+            return;
+        }
         dc.setColor(COLOR_ACCENT, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(_centerX - 55, barY, 110, 3);
+        dc.drawText(
+            _centerX / 2,
+            32,
+            Graphics.FONT_SMALL,
+            "♥ " + actInfo.currentHeartRate.format("%d"),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+    }
+
+    // ── Body Battery (haut droite) ────────────────────────────────────────────
+    private function _drawBodyBattery(dc as Dc) as Void {
+        var info = ActivityMonitor.getInfo();
+        if (info == null || info.bodyBatteryLevel == null) {
+            return;
+        }
+        dc.setColor(COLOR_BODY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            _centerX + _centerX / 2,
+            32,
+            Graphics.FONT_SMALL,
+            "BB " + info.bodyBatteryLevel.format("%d"),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
     }
 
     // ── Heure HH:MM ──────────────────────────────────────────────────────────
@@ -81,11 +108,18 @@ class GarminSwatchView extends WatchUi.WatchFace {
         dc.setColor(COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             _centerX,
-            _centerY - 20,
+            _centerY - 18,
             Graphics.FONT_NUMBER_THAI_HOT,
             timeStr,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
+    }
+
+    // ── Barre d'accent rouge horizontale (style Swatch) ──────────────────────
+    private function _drawAccentBar(dc as Dc) as Void {
+        var barY = _centerY + 30;
+        dc.setColor(COLOR_ACCENT, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(_centerX - 55, barY, 110, 3);
     }
 
     // ── Date : Lun. 24 mai ───────────────────────────────────────────────────
@@ -101,14 +135,14 @@ class GarminSwatchView extends WatchUi.WatchFace {
         dc.setColor(COLOR_DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             _centerX,
-            _centerY + 50,
+            _centerY + 52,
             Graphics.FONT_SMALL,
             dateStr,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }
 
-    // ── Batterie (icône + % en bas à gauche) ─────────────────────────────────
+    // ── Batterie montre (bas gauche) ─────────────────────────────────────────
     private function _drawBattery(dc as Dc, battery as Float) as Void {
         var x   = _centerX - 55;
         var y   = _screenHeight - 35;
@@ -137,7 +171,7 @@ class GarminSwatchView extends WatchUi.WatchFace {
         );
     }
 
-    // ── Pas (bas à droite) ───────────────────────────────────────────────────
+    // ── Pas cumulés (bas droite) ─────────────────────────────────────────────
     private function _drawSteps(dc as Dc) as Void {
         var info  = ActivityMonitor.getInfo();
         var steps = (info != null && info.steps != null) ? info.steps : 0;
@@ -149,25 +183,6 @@ class GarminSwatchView extends WatchUi.WatchFace {
             Graphics.FONT_XTINY,
             steps.format("%d") + " pas",
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
-        );
-    }
-
-    // ── Fréquence cardiaque (haut) ───────────────────────────────────────────
-    private function _drawHeartRate(dc as Dc) as Void {
-        var activityInfo = Activity.getActivityInfo();
-        if (activityInfo == null || activityInfo.currentHeartRate == null) {
-            return;
-        }
-
-        var hr = activityInfo.currentHeartRate;
-
-        dc.setColor(COLOR_ACCENT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            _centerX,
-            35,
-            Graphics.FONT_SMALL,
-            "♥ " + hr.format("%d"),
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }
 }

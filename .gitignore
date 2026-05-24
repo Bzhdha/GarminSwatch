@@ -1,0 +1,8 @@
+bin/
+*.prg
+*.iq
+*.debug.xml
+developer_key.der
+developer_key.pem
+.vscode/
+.settings/

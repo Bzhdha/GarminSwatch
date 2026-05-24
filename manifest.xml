@@ -1,17 +1,17 @@
-<manifest xmlns="http://www.garmin.com/xml/connectiq" version="3">
-  <application entry="GarminSwatchApp" id="a3d5b8c2-1e4f-4a9b-8c6d-2f7e0a1b3c5d" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="4.1.0" name="@Strings.AppName" type="watchFace" version="1.0.0">
-    <products>
-      <product id="fr255"/>
-      <product id="fr255m"/>
-    </products>
-    <permissions>
-      <uses-permission id="Background"/>
-      <uses-permission id="UserProfile"/>
-      <uses-permission id="FitContributor"/>
-    </permissions>
-    <languages>
-      <language>fre</language>
-      <language>eng</language>
-    </languages>
-  </application>
-</manifest>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+  <iq:application entry="GarminSwatchApp" id="a3d5b8c2-1e4f-4a9b-8c6d-2f7e0a1b3c5d" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="4.1.0" name="@Strings.AppName" type="watchFace" version="1.0.0">
+    <iq:products>
+      <iq:product id="fr255"/>
+      <iq:product id="fr255m"/>
+    </iq:products>
+    <iq:permissions>
+      <iq:uses-permission id="Background"/>
+      <iq:uses-permission id="UserProfile"/>
+      <iq:uses-permission id="FitContributor"/>
+    </iq:permissions>
+    <iq:languages>
+      <iq:language>fre</iq:language>
+      <iq:language>eng</iq:language>
+    </iq:languages>
+  </iq:application>
+</iq:manifest>

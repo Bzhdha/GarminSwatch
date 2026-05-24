@@ -80,7 +80,16 @@ class GarminSwatchView extends WatchUi.WatchFace {
     // ── Body Battery (haut droite) ────────────────────────────────────────────
     private function _drawBodyBattery(dc as Dc) as Void {
         var info = ActivityMonitor.getInfo();
-        if (info == null || info.bodyBatteryLevel == null) {
+        if (info == null) {
+            return;
+        }
+        // bodyBatteryLevel requires SensorHistory permission; use has+subscript
+        // to degrade gracefully on devices that don't expose it
+        if (!(info has :bodyBatteryLevel)) {
+            return;
+        }
+        var bb = info[:bodyBatteryLevel];
+        if (bb == null) {
             return;
         }
         dc.setColor(COLOR_BODY, Graphics.COLOR_TRANSPARENT);
@@ -88,7 +97,7 @@ class GarminSwatchView extends WatchUi.WatchFace {
             _centerX + _centerX / 2,
             32,
             Graphics.FONT_SMALL,
-            "BB " + info.bodyBatteryLevel.format("%d"),
+            "BB " + bb.format("%d"),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }

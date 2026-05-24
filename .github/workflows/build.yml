@@ -51,7 +51,10 @@ jobs:
 
       - name: Download latest SDK
         if: steps.cache-sdk.outputs.cache-hit != 'true'
-        run: connect-iq-sdk-manager sdk set latest
+        run: |
+          SDK_VERSION=$(curl -sf https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)[-1]['version'])")
+          connect-iq-sdk-manager sdk set "$SDK_VERSION"
 
       - name: Add SDK to PATH
         run: |

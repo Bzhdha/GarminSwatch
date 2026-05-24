@@ -79,7 +79,7 @@ jobs:
           if [ -n "${{ secrets.GARMIN_DEVELOPER_KEY }}" ]; then
             echo "${{ secrets.GARMIN_DEVELOPER_KEY }}" | base64 --decode > /tmp/developer_key.der
           else
-            openssl genrsa -out /tmp/dev.pem 4096 2>/dev/null
+            openssl genrsa -out /tmp/dev.pem 2048 2>/dev/null
             openssl pkcs8 -topk8 -inform PEM -outform DER \
               -in /tmp/dev.pem -out /tmp/developer_key.der -nocrypt
             echo "::warning::Clé temporaire — ajoutez GARMIN_DEVELOPER_KEY dans les secrets."

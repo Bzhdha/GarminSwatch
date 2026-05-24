@@ -14,12 +14,15 @@ class GarminSwatchView extends WatchUi.WatchFace {
     private var _centerX      as Number = 130;
     private var _centerY      as Number = 130;
 
-    // Palette — inspirée Swatch : noir, blanc, accent rouge vif
+    // Palette
     private const COLOR_BG      = 0x000000;
     private const COLOR_WHITE   = 0xFFFFFF;
     private const COLOR_ACCENT  = 0xFF2020;  // rouge Swatch
     private const COLOR_DIM     = 0x666666;
     private const COLOR_BODY    = 0x00AAFF;  // bleu body battery
+    private const COLOR_GREEN   = 0x00CC44;  // productif / peaking
+    private const COLOR_ORANGE  = 0xFF8800;  // maintien / surmenage léger
+    private const COLOR_BLUE    = 0x4488FF;  // récupération
 
     function initialize() {
         WatchFace.initialize();
@@ -48,6 +51,8 @@ class GarminSwatchView extends WatchUi.WatchFace {
         _drawTime(dc, clockTime);
         _drawAccentBar(dc);
         _drawDate(dc, now);
+        _drawTrainingStatus(dc);
+        _drawVo2Max(dc);
         _drawBattery(dc, stats.battery);
         _drawSteps(dc);
     }
@@ -77,15 +82,10 @@ class GarminSwatchView extends WatchUi.WatchFace {
         );
     }
 
-    // ── Body Battery (haut droite) ────────────────────────────────────────────
+    // ── Body Battery (haut droite) ───────────────────────────────────────────
     private function _drawBodyBattery(dc as Dc) as Void {
         var info = ActivityMonitor.getInfo();
-        if (info == null) {
-            return;
-        }
-        // bodyBatteryLevel requires SensorHistory permission; use has+subscript
-        // to degrade gracefully on devices that don't expose it
-        if (!(info has :bodyBatteryLevel)) {
+        if (info == null || !(info has :bodyBatteryLevel)) {
             return;
         }
         var bb = info[:bodyBatteryLevel];
@@ -151,25 +151,91 @@ class GarminSwatchView extends WatchUi.WatchFace {
         );
     }
 
+    // ── Statut d'entraînement — icône triangle colorée ───────────────────────
+    // Valeurs : 0=aucun 1=maintien 2=récup 3=improductif
+    //           4=productif 5=pic 6=surmenage 7=récup_requise
+    private function _drawTrainingStatus(dc as Dc) as Void {
+        var info = ActivityMonitor.getInfo();
+        if (info == null || !(info has :trainingStatus)) {
+            return;
+        }
+        var status = info[:trainingStatus];
+        if (status == null) {
+            return;
+        }
+
+        var cx  = _centerX - 25;
+        var cy  = _screenHeight - 58;
+        var w   = 7;   // demi-largeur du triangle
+        var h   = 11;  // hauteur du triangle
+
+        var color;
+        var up;  // true = triangle pointe en haut, false = en bas
+
+        if (status == 4 || status == 5) {
+            color = COLOR_GREEN;
+            up = true;
+        } else if (status == 1) {
+            color = COLOR_ORANGE;
+            up = true;
+        } else if (status == 2 || status == 7) {
+            color = COLOR_BLUE;
+            up = false;
+        } else if (status == 6) {
+            // Surmenage : triangle rouge pointe en bas (alarme)
+            color = COLOR_ACCENT;
+            up = false;
+        } else {
+            // Aucun / improductif : barre horizontale grise
+            dc.setColor(COLOR_DIM, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(cx - w, cy - 1, 2 * w, 3);
+            return;
+        }
+
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        if (up) {
+            dc.fillPolygon([[cx, cy - h / 2], [cx - w, cy + h / 2], [cx + w, cy + h / 2]]);
+        } else {
+            dc.fillPolygon([[cx, cy + h / 2], [cx - w, cy - h / 2], [cx + w, cy - h / 2]]);
+        }
+    }
+
+    // ── VO2 max (à droite du statut d'entraînement) ──────────────────────────
+    private function _drawVo2Max(dc as Dc) as Void {
+        var info = ActivityMonitor.getInfo();
+        if (info == null || !(info has :vo2MaxRunning)) {
+            return;
+        }
+        var vo2 = info[:vo2MaxRunning];
+        if (vo2 == null) {
+            return;
+        }
+        dc.setColor(COLOR_DIM, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            _centerX + 10,
+            _screenHeight - 58,
+            Graphics.FONT_XTINY,
+            "VO2 " + vo2.format("%d"),
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+    }
+
     // ── Batterie montre (bas gauche) ─────────────────────────────────────────
     private function _drawBattery(dc as Dc, battery as Float) as Void {
         var x   = _centerX - 55;
         var y   = _screenHeight - 35;
         var pct = battery.toNumber();
 
-        var barColor = pct > 20 ? COLOR_ACCENT : 0xFF6600;
+        var barColor = pct > 20 ? COLOR_ACCENT : COLOR_ORANGE;
 
-        // Contour batterie
         dc.setColor(COLOR_DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawRectangle(x, y, 22, 11);
         dc.fillRectangle(x + 22, y + 3, 3, 5);
 
-        // Remplissage
         var fill = (18 * pct / 100).toNumber();
         dc.setColor(barColor, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(x + 2, y + 2, fill, 7);
 
-        // Texte
         dc.setColor(COLOR_DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             x + 28,

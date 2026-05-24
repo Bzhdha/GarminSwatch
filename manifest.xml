@@ -1,5 +1,5 @@
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
-  <iq:application entry="GarminSwatchApp" id="a3d5b8c2-1e4f-4a9b-8c6d-2f7e0a1b3c5d" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="4.1.0" name="@Strings.AppName" type="watchFace" version="1.0.0">
+  <iq:application entry="GarminSwatchApp" id="a3d5b8c2-1e4f-4a9b-8c6d-2f7e0a1b3c5d" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="4.1.0" name="@Strings.AppName" type="watchface" version="1.0.0">
     <iq:products>
       <iq:product id="fr255"/>
       <iq:product id="fr255m"/>

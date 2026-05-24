@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        device: [fr255]
+        device: [fr255, fr255m]
 
     steps:
       - name: Checkout

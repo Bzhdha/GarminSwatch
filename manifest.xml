@@ -2,7 +2,7 @@
   <application entry="GarminSwatchApp" id="a3d5b8c2-1e4f-4a9b-8c6d-2f7e0a1b3c5d" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="4.1.0" name="@Strings.AppName" type="watchFace" version="1.0.0">
     <products>
       <product id="fr255"/>
-      <product id="fr255s"/>
+      <product id="fr255m"/>
     </products>
     <permissions>
       <uses-permission id="Background"/>

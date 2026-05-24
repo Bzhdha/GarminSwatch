@@ -7,63 +7,77 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  DEVICE: "fr255"
-
 jobs:
   build:
-    name: Compile Monkey C
+    name: Compile — ${{ matrix.device }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device: [fr255, fr255m]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── SDK Connect IQ ────────────────────────────────────────────────────
-      - name: Resolve latest SDK URL
-        id: sdk-url
+      # ── connect-iq-sdk-manager-cli ────────────────────────────────────────
+      - name: Install connect-iq-sdk-manager
         run: |
-          SDKS_JSON=$(curl -sf "https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json")
-          SDK_FILE=$(echo "$SDKS_JSON" | python3 -c "
-          import sys, json
-          sdks = json.load(sys.stdin)
-          latest = sdks[-1]
-          print(latest['linux'])
-          ")
-          echo "file=$SDK_FILE" >> $GITHUB_OUTPUT
-          echo "Resolved SDK: $SDK_FILE"
+          curl -fsSL \
+            "https://github.com/lindell/connect-iq-sdk-manager-cli/releases/latest/download/connect-iq-sdk-manager-linux-amd64" \
+            -o /usr/local/bin/connect-iq-sdk-manager
+          chmod +x /usr/local/bin/connect-iq-sdk-manager
 
+      - name: Accept agreement
+        run: |
+          connect-iq-sdk-manager agreement accept \
+            --agreement-hash "${{ secrets.GARMIN_AGREEMENT_HASH }}"
+
+      - name: Login to Garmin
+        run: |
+          connect-iq-sdk-manager login \
+            --username "${{ secrets.GARMIN_USERNAME }}" \
+            --password "${{ secrets.GARMIN_PASSWORD }}"
+
+      # ── SDK ───────────────────────────────────────────────────────────────
       - name: Cache SDK
         id: cache-sdk
         uses: actions/cache@v4
         with:
-          path: ~/ciq-sdk
-          key: ciq-sdk-${{ steps.sdk-url.outputs.file }}
+          path: ~/.Garmin/ConnectIQ/Sdks
+          key: ciq-sdk-${{ runner.os }}-${{ hashFiles('manifest.xml') }}
+          restore-keys: ciq-sdk-${{ runner.os }}-
 
-      - name: Download SDK
+      - name: Download latest SDK
         if: steps.cache-sdk.outputs.cache-hit != 'true'
-        run: |
-          wget -q "https://developer.garmin.com/downloads/connect-iq/sdks/${{ steps.sdk-url.outputs.file }}" \
-            -O /tmp/ciq-sdk.zip
-          mkdir -p ~/ciq-sdk
-          unzip -q /tmp/ciq-sdk.zip -d ~/ciq-sdk
+        run: connect-iq-sdk-manager sdk set latest
 
       - name: Add SDK to PATH
-        run: echo "$HOME/ciq-sdk/bin" >> $GITHUB_PATH
+        run: |
+          SDK_BIN=$(connect-iq-sdk-manager sdk current-path --bin)
+          echo "$SDK_BIN" >> $GITHUB_PATH
+
+      # ── Devices ───────────────────────────────────────────────────────────
+      - name: Cache devices
+        id: cache-devices
+        uses: actions/cache@v4
+        with:
+          path: ~/.Garmin/ConnectIQ/Devices
+          key: ciq-devices-${{ matrix.device }}-${{ hashFiles('manifest.xml') }}
+
+      - name: Download device definitions
+        if: steps.cache-devices.outputs.cache-hit != 'true'
+        run: connect-iq-sdk-manager device download --manifest manifest.xml
 
       # ── Clé développeur ───────────────────────────────────────────────────
       - name: Setup developer key
-        env:
-          DEVELOPER_KEY: ${{ secrets.GARMIN_DEVELOPER_KEY }}
         run: |
-          if [ -n "$DEVELOPER_KEY" ]; then
-            echo "$DEVELOPER_KEY" | base64 --decode > /tmp/developer_key.der
+          if [ -n "${{ secrets.GARMIN_DEVELOPER_KEY }}" ]; then
+            echo "${{ secrets.GARMIN_DEVELOPER_KEY }}" | base64 --decode > /tmp/developer_key.der
           else
-            # Génère une clé temporaire pour valider la compilation
             openssl genrsa -out /tmp/dev.pem 4096 2>/dev/null
             openssl pkcs8 -topk8 -inform PEM -outform DER \
               -in /tmp/dev.pem -out /tmp/developer_key.der -nocrypt
-            echo "::warning::Clé temporaire utilisée. Ajoutez GARMIN_DEVELOPER_KEY dans les secrets GitHub."
+            echo "::warning::Clé temporaire — ajoutez GARMIN_DEVELOPER_KEY dans les secrets."
           fi
 
       # ── Compilation ───────────────────────────────────────────────────────
@@ -71,18 +85,18 @@ jobs:
         run: |
           mkdir -p bin
           monkeyc \
-            -o bin/GarminSwatch.prg \
+            -o "bin/GarminSwatch-${{ matrix.device }}.prg" \
             -f monkey.jungle \
             -y /tmp/developer_key.der \
-            -d ${{ env.DEVICE }} \
+            -d ${{ matrix.device }} \
             --warn
 
       # ── Artifact ──────────────────────────────────────────────────────────
       - name: Upload PRG
         uses: actions/upload-artifact@v4
         with:
-          name: GarminSwatch-${{ env.DEVICE }}-${{ github.sha }}
-          path: bin/GarminSwatch.prg
+          name: GarminSwatch-${{ matrix.device }}-${{ github.sha }}
+          path: bin/GarminSwatch-${{ matrix.device }}.prg
           retention-days: 30
 
   # ── Release automatique sur tag v* ────────────────────────────────────────
@@ -93,17 +107,14 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: GarminSwatch-${{ env.DEVICE }}-${{ github.sha }}
           path: bin/
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: bin/GarminSwatch.prg
+          files: bin/*.prg
           generate_release_notes: true

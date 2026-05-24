@@ -22,10 +22,12 @@ jobs:
       # ── connect-iq-sdk-manager-cli ────────────────────────────────────────
       - name: Install connect-iq-sdk-manager
         run: |
+          VERSION=$(curl -sf https://api.github.com/repos/lindell/connect-iq-sdk-manager-cli/releases/latest \
+            | jq -r '.tag_name' | sed 's/v//')
           curl -fsSL \
-            "https://github.com/lindell/connect-iq-sdk-manager-cli/releases/latest/download/connect-iq-sdk-manager-linux-amd64" \
-            -o /usr/local/bin/connect-iq-sdk-manager
-          chmod +x /usr/local/bin/connect-iq-sdk-manager
+            "https://github.com/lindell/connect-iq-sdk-manager-cli/releases/download/v${VERSION}/connect-iq-sdk-manager-cli_${VERSION}_Linux_x86_64.tar.gz" \
+            | tar -xz -C /tmp
+          sudo mv /tmp/connect-iq-sdk-manager-cli /usr/local/bin/connect-iq-sdk-manager
 
       - name: Accept agreement
         run: |

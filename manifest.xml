@@ -10,8 +10,8 @@
       <uses-permission id="FitContributor"/>
     </permissions>
     <languages>
-      <language id="fre"/>
-      <language id="eng"/>
+      <language>fre</language>
+      <language>eng</language>
     </languages>
   </application>
 </manifest>
